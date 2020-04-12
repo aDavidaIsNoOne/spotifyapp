@@ -71,7 +71,7 @@ const Playlist = (props: IPlaylistProps) => {
     return (
       <Stack
         style={{
-          padding: 10,
+          padding: 20,
           maxWidth: 400
         }}
         tokens={{ childrenGap: 20 }}
