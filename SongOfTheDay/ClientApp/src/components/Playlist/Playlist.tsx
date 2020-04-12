@@ -19,13 +19,17 @@ const Playlist = (props: IPlaylistProps) => {
       setVote(vote);
     }
     setLoading(true);
-    getPlaylist().then(() => {
+    refreshPlaylist().then(() => {
       setLoading(false);
     });
   }, [props.id]);
 
   const getPlaylist = async () => {
     const playlist = await _client.getPlaylist(props.id);
+    setPlaylist(playlist);
+  };
+  const refreshPlaylist = async () => {
+    const playlist = await _client.refreshPlaylist(props.id);
     setPlaylist(playlist);
   };
   const upVote = async (trackId: string) => {
