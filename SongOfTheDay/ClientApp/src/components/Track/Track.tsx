@@ -1,17 +1,11 @@
 import React, { Fragment, useState } from 'react';
-import {
-  Text,
-  IconButton,
-  Stack,
-  Spinner,
-  SpinnerSize,
-  rgb2hex
-} from '@fluentui/react';
-import { ITrack, IPlaylistTrack } from '../../Models';
+import { Text, IconButton, Spinner, SpinnerSize } from '@fluentui/react';
+import { IPlaylistTrack } from '../../Models';
 
 export interface ITrackprops {
   playlistTrack: IPlaylistTrack;
   upvote: (trackId: string) => Promise<void>;
+  vote: string;
 }
 
 const Track = (props: ITrackprops) => {
@@ -21,6 +15,18 @@ const Track = (props: ITrackprops) => {
     setUpvoted(true);
     await props.upvote(props.playlistTrack.trackId);
     setUpvoted(false);
+  };
+
+  const icon = () => {
+    if (props.vote === props.playlistTrack.trackId) {
+      return 'CheckMark';
+    }
+    if (!props.vote) {
+      return 'Up';
+    }
+    if (props.vote && props.vote !== props.playlistTrack.trackId) {
+      return '';
+    }
   };
   return (
     <Fragment>
@@ -63,7 +69,14 @@ const Track = (props: ITrackprops) => {
             />
           ) : (
             <IconButton
+              disabled={
+                props.vote !== '' && props.vote !== props.playlistTrack.trackId
+              }
               styles={{
+                rootDisabled: {
+                  color: '#1db954',
+                  backgroundColor: 'transparent'
+                },
                 rootHovered: {
                   color: '#1db954',
                   backgroundColor: 'rgb(50,50,50)'
@@ -72,7 +85,7 @@ const Track = (props: ITrackprops) => {
                 icon: { color: '#1db954' }
               }}
               iconProps={{
-                iconName: 'Up',
+                iconName: icon(),
                 styles: { root: { fontSize: 20, fontWeight: 'bold' } }
               }}
               onClick={onUpvote}

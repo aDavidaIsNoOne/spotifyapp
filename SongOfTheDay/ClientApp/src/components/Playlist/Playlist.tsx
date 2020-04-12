@@ -1,35 +1,23 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IPlaylist } from '../../Models';
-import {
-  Text,
-  IconButton,
-  DefaultButton,
-  Image,
-  DocumentCard,
-  Spinner,
-  SpinnerSize,
-  Stack,
-  ImageFit
-} from '@fluentui/react';
+import { Text, Image, Spinner, SpinnerSize, Stack } from '@fluentui/react';
 import Track from '../Track/Track';
 import Client from '../../ApiClient';
 
 export interface IPlaylistProps {
   id: string;
 }
-const textStyle = {
-  color: 'white',
-  display: 'inline-block',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis'
-};
 
 const Playlist = (props: IPlaylistProps) => {
   const [playlist, setPlaylist] = useState({} as IPlaylist);
   const [loading, setLoading] = useState(false);
+  const [vote, setVote] = useState('');
   const _client = new Client();
   useEffect(() => {
+    const vote = localStorage.getItem(props.id);
+    if (vote) {
+      setVote(vote);
+    }
     setLoading(true);
     getPlaylist().then(() => {
       setLoading(false);
@@ -42,6 +30,8 @@ const Playlist = (props: IPlaylistProps) => {
   };
   const upVote = async (trackId: string) => {
     await _client.upVote(trackId, props.id);
+    localStorage.setItem(props.id, trackId);
+    setVote(trackId);
     await getPlaylist();
   };
   if (loading) {
@@ -117,7 +107,7 @@ const Playlist = (props: IPlaylistProps) => {
               .map((x) => {
                 return (
                   <Stack.Item>
-                    <Track playlistTrack={x} upvote={upVote} />
+                    <Track playlistTrack={x} upvote={upVote} vote={vote} />
                   </Stack.Item>
                 );
               })
