@@ -1,0 +1,7 @@
+/* Provide sufficient contrast against white background */
+body {
+  background-color: #121212;
+}
+.carousel .slide {
+  background-color: #121212;
+}
