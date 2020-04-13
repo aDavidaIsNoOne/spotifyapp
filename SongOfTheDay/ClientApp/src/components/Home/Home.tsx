@@ -91,9 +91,8 @@ export default class Home extends Component<{}, IAppState> {
         ) : (
           <Carousel
             showIndicators={false}
-            infiniteLoop
-            showArrows={false}
             showThumbs={false}
+            useKeyboardArrows={true}
             swipeScrollTolerance={80}
           >
             {this.state.playlistIds.map((id) => {
