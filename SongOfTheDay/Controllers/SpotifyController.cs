@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SongOfTheDay.Data;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Auth;
@@ -19,22 +20,15 @@ namespace SongOfTheDay.Controllers
     [Route("api/[controller]")]
     public class SpotifyController : ControllerBase
     {
-        private static SpotifyWebAPI _spotify;
-        private static CredentialsAuth _auth;
+        private static Token _token;
         private readonly SongOfTheDayContext _context;
-
+        private readonly SpotifySettings _settings;
 
         private readonly ILogger<SpotifyController> _logger;
 
-        public SpotifyController(ILogger<SpotifyController> logger, IConfiguration configuration, SongOfTheDayContext context)
+        public SpotifyController(ILogger<SpotifyController> logger, IConfiguration configuration, SongOfTheDayContext context, IOptions<SpotifySettings> settings)
         {
-            _auth = new CredentialsAuth(configuration.GetValue<string>("SpotifyClientId"), configuration.GetValue<string>("SpotifyClientSecret"));
-            Token token = _auth.GetToken().GetAwaiter().GetResult();
-            _spotify = new SpotifyWebAPI
-            {
-                AccessToken = token.AccessToken,
-                TokenType = token.TokenType
-            };
+            _settings = settings.Value;
             _context = context;
         }
 
@@ -58,7 +52,8 @@ namespace SongOfTheDay.Controllers
         [HttpPost("playlist/add")]
         public async Task AddPlaylist(AddPlaylistDto dto)
         {
-            var result = await _spotify.GetPlaylistAsync(dto.PlaylistId);
+            var spotify = await GetSpotifyClient();
+            var result = await spotify.GetPlaylistAsync(dto.PlaylistId);
             if (result.HasError())
             {
                 throw new Exception(result.Error.Message);
@@ -86,9 +81,12 @@ namespace SongOfTheDay.Controllers
         [HttpGet("playlist/{id}/refresh")]
         public async Task<Playlist> RefreshPlaylist(string id)
         {
-            var result = await _spotify.GetPlaylistAsync(id);
+           var spotify = await GetSpotifyClient();
 
-            await _AddPlaylistTracks(result.Tracks.Items, result.Id);
+            var result = await spotify.GetPlaylistAsync(id);
+            var playlistTracks = result.Tracks.Items;
+
+            await _AddPlaylistTracks(playlistTracks, result.Id);
 
             return await GetPlaylist(id);
         }
@@ -123,45 +121,57 @@ namespace SongOfTheDay.Controllers
 
         private async Task _AddPlaylistTracks(IEnumerable<SpotifyAPI.Web.Models.PlaylistTrack> playlistTracks, string playlistId)
         {
-            var newPlaylistTracks = new List<Models.PlaylistTrack>();
+            var spotify = await GetSpotifyClient();
 
             foreach (var playlistTrack in playlistTracks)
             {
-                var user = await _spotify.GetPublicProfileAsync(playlistTrack.AddedBy.Id);
+                var user = await spotify.GetPublicProfileAsync(playlistTrack.AddedBy.Id);
                 if (user.HasError())
                 {
                     throw new Exception(user.Error.Message);
                 }
-                var existingPlaylistTrack = await _context.PlaylistTracks.AnyAsync(x => x.PlaylistId == playlistId && x.TrackId == playlistTrack.Track.Id);
-                if (!existingPlaylistTrack)
+                var existingPlaylistTrack =  _context.PlaylistTracks.ToListAsync().Result.Any(x => x.PlaylistId == playlistId && x.TrackId == playlistTrack.Track.Id);
+                if (existingPlaylistTrack == false)
                 {
+                    var newPlaylistTrack = new Models.PlaylistTrack()
+                    {
+                        PlaylistId = playlistId
+                    };
+
                     var existingTrack = await _context.Tracks.SingleOrDefaultAsync(x => x.Id == playlistTrack.Track.Id);
                     if (existingTrack == null)
                     {
-                        newPlaylistTracks.Add(new Models.PlaylistTrack()
+                        newPlaylistTrack.Track = new Track()
                         {
-                            Track = new Track()
-                            {
-                                Id = playlistTrack.Track.Id,
-                                Artist = playlistTrack.Track.Artists.First().Name,
-                                Name = playlistTrack.Track.Name,
-                                AddedBy = user.DisplayName
-                            },
-                            PlaylistId = playlistId
-                        });
+                            Id = playlistTrack.Track.Id,
+                            Artist = playlistTrack.Track.Artists.First().Name,
+                            Name = playlistTrack.Track.Name,
+                            AddedBy = user.DisplayName
+                        };
+                      
                     }
                     else
                     {
-                        newPlaylistTracks.Add(new Models.PlaylistTrack()
-                        {
-                            Track = existingTrack,
-                            PlaylistId = playlistId
-                        });
+                        newPlaylistTrack.Track = existingTrack;
                     }
+                    _context.PlaylistTracks.Add(newPlaylistTrack);
                 }
             };
-            await _context.PlaylistTracks.AddRangeAsync(newPlaylistTracks);
             await _context.SaveChangesAsync();
+        }
+
+        private async Task<SpotifyWebAPI> GetSpotifyClient()
+        {
+            var auth = new CredentialsAuth(_settings.SpotifyClientId, _settings.SpotifyClientSecret);
+            if (_token == null ||_token.IsExpired())
+            {
+                _token = await auth.GetToken();
+            }
+            return new SpotifyWebAPI
+            {
+                AccessToken = _token.AccessToken,
+                TokenType = _token.TokenType
+            };
         }
     }
 }

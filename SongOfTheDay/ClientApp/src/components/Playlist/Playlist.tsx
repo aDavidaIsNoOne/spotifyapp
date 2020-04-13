@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { IPlaylist } from '../../Models';
 import { Text, Image, Spinner, SpinnerSize, Stack } from '@fluentui/react';
 import Track from '../Track/Track';
 import Client from '../../ApiClient';
-
+import styles from './Playlist.module.css';
 export interface IPlaylistProps {
   id: string;
 }
@@ -38,17 +38,10 @@ const Playlist = (props: IPlaylistProps) => {
     setVote(trackId);
     await getPlaylist();
   };
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 400,
-          height: 400
-        }}
-      >
+
+  return (
+    <Stack className={styles.container} tokens={{ childrenGap: 10 }}>
+      {loading ? (
         <Spinner
           styles={{
             circle: {
@@ -59,66 +52,74 @@ const Playlist = (props: IPlaylistProps) => {
           }}
           size={SpinnerSize.large}
         />
-      </div>
-    );
-  } else {
-    return (
-      <Stack
-        style={{
-          padding: 20,
-          maxWidth: 400
-        }}
-        tokens={{ childrenGap: 20 }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Image width={200} src={playlist.imageUrl} />
-          <Text
-            styles={{
-              root: {
-                color: 'white',
-                display: 'inline-block',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }
+      ) : (
+        <Fragment>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start'
             }}
-            variant={'xLargePlus'}
           >
-            {playlist.name}
-          </Text>
-          <Text
-            styles={{
-              root: {
-                color: 'white',
-                display: 'inline-block',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }
-            }}
-            variant={'large'}
-          >
-            {playlist.description}
-          </Text>
-        </div>
-        {/* <DefaultButton
+            <Image
+              styles={{ root: { alignSelf: 'center' } }}
+              width={200}
+              src={playlist.imageUrl}
+            />
+            <Text
+              styles={{
+                root: {
+                  maxWidth: '100%',
+                  color: 'white',
+                  display: 'inline-block',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginTop: '10px'
+                }
+              }}
+              variant={'xLarge'}
+            >
+              {playlist.name}
+            </Text>
+            <Text
+              styles={{
+                root: {
+                  maxWidth: '100%',
+                  color: '#b3b3b3',
+                  display: 'inline-block',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }}
+              variant={'large'}
+            >
+              {playlist.description}
+            </Text>
+          </div>
+          {/* <DefaultButton
           text={'Delete'}
           onClick={() => props.deletePlaylist(playlist.id)}
         /> */}
-        {playlist.tracks
-          ? playlist.tracks
-              .sort((a, b) => b.votes - a.votes)
-              .map((x) => {
-                return (
-                  <Stack.Item>
-                    <Track playlistTrack={x} upvote={upVote} vote={vote} />
-                  </Stack.Item>
-                );
-              })
-          : null}
-      </Stack>
-    );
-  }
+          {playlist.tracks
+            ? playlist.tracks
+                .sort((a, b) => b.votes - a.votes)
+                .map((x) => {
+                  return (
+                    <Track
+                      key={x.trackId}
+                      playlistTrack={x}
+                      upvote={upVote}
+                      vote={vote}
+                    />
+                  );
+                })
+            : null}
+        </Fragment>
+      )}
+    </Stack>
+  );
 };
 
 export default Playlist;

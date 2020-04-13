@@ -4,21 +4,25 @@ import {
   TextField,
   PrimaryButton,
   Spinner,
-  SpinnerSize
+  SpinnerSize,
+  Stack
 } from '@fluentui/react';
-import '../../custom.css';
 import { initializeIcons } from '@uifabric/icons';
 import Playlist from '../Playlist/Playlist';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import '../../overrides.css';
+
+import { Carousel } from 'react-responsive-carousel';
 initializeIcons();
 
 interface IAppState {
   playlistIds: string[];
-  newPlaylistId: string;
+  playlistUrl: string;
   loading: boolean;
 }
 const initialState: IAppState = {
   playlistIds: [],
-  newPlaylistId: '',
+  playlistUrl: '',
   loading: false
 };
 export default class Home extends Component<{}, IAppState> {
@@ -37,20 +41,26 @@ export default class Home extends Component<{}, IAppState> {
   render() {
     return (
       <div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: 10,
-            width: 400
+        <Stack
+          horizontal
+          verticalAlign={'end'}
+          styles={{
+            root: {
+              maxWidth: '500px',
+              padding: '10px 20px 10px 20px'
+            }
           }}
         >
           <TextField
             label={'Add a new playlist'}
-            placeholder={'playlist id'}
-            value={this.state.newPlaylistId}
+            placeholder={'playlist url'}
+            value={this.state.playlistUrl}
             onChange={this._onNewPlaylistChanged}
             styles={{
+              field: { color: 'white' },
+              fieldGroup: {
+                backgroundColor: 'transparent'
+              },
               root: { flex: 1 },
               subComponentStyles: { label: { root: { color: 'white' } } }
             }}
@@ -66,7 +76,7 @@ export default class Home extends Component<{}, IAppState> {
               }
             }}
           />
-        </div>
+        </Stack>
         {this.state.loading ? (
           <Spinner
             styles={{
@@ -79,11 +89,17 @@ export default class Home extends Component<{}, IAppState> {
             size={SpinnerSize.large}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'row' }}>
+          <Carousel
+            showIndicators={false}
+            infiniteLoop
+            showArrows={false}
+            showThumbs={false}
+            swipeScrollTolerance={80}
+          >
             {this.state.playlistIds.map((id) => {
-              return <Playlist id={id} />;
+              return <Playlist key={id} id={id} />;
             })}
-          </div>
+          </Carousel>
         )}
       </div>
     );
@@ -93,19 +109,29 @@ export default class Home extends Component<{}, IAppState> {
     event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
     newValue?: string
   ) => {
-    this.setState({ newPlaylistId: newValue || '' });
+    this.setState({ playlistUrl: newValue || '' });
   };
+
   private _submitPlaylist = async () => {
-    this.setState({ loading: true });
-    await fetch(`${process.env.REACT_APP_BASE_URL}/api/spotify/playlist/add`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ playlistId: this.state.newPlaylistId })
-    });
-    this.setState({ newPlaylistId: '', loading: false });
-    await this._getPlaylists();
+    if (this.state.playlistUrl) {
+      this.setState({ loading: true });
+      let playlistId = this.state.playlistUrl.split('/').pop();
+      if (playlistId && playlistId.indexOf('?') > -1) {
+        playlistId = playlistId.split('?')[0];
+      }
+      await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/spotify/playlist/add`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ playlistId: playlistId })
+        }
+      );
+      this.setState({ playlistUrl: '', loading: false });
+      await this._getPlaylists();
+    }
   };
 
   private _getPlaylists = async () => {

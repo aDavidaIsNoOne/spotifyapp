@@ -1,7 +1,7 @@
 import React, { Fragment, useState } from 'react';
-import { Text, IconButton, Spinner, SpinnerSize } from '@fluentui/react';
+import { Text, IconButton, Spinner, SpinnerSize, Stack } from '@fluentui/react';
 import { IPlaylistTrack } from '../../Models';
-
+import styles from './Track.module.css';
 export interface ITrackprops {
   playlistTrack: IPlaylistTrack;
   upvote: (trackId: string) => Promise<void>;
@@ -29,11 +29,10 @@ const Track = (props: ITrackprops) => {
     }
   };
   return (
-    <Fragment>
+    <Stack.Item className={styles.track}>
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between'
         }}
       >
@@ -48,7 +47,7 @@ const Track = (props: ITrackprops) => {
               color: 'white'
             }
           }}
-          variant="xLarge"
+          variant="large"
         >
           {props.playlistTrack.track.name}
         </Text>
@@ -69,12 +68,12 @@ const Track = (props: ITrackprops) => {
             />
           ) : (
             <IconButton
-              disabled={
-                props.vote !== '' && props.vote !== props.playlistTrack.trackId
-              }
+              disabled={props.vote !== ''}
               styles={{
+                iconDisabled: {
+                  color: '#1db954'
+                },
                 rootDisabled: {
-                  color: '#1db954',
                   backgroundColor: 'transparent'
                 },
                 rootHovered: {
@@ -104,16 +103,14 @@ const Track = (props: ITrackprops) => {
           </Text>
         </div>
       </div>
-      <div>
-        <Text
-          styles={{ root: { color: 'white', marginBottom: 10 } }}
-          variant={'medium'}
-        >
-          {props.playlistTrack.track.addedBy} &#8226;{' '}
-          {props.playlistTrack.track.artist}
-        </Text>
-      </div>
-    </Fragment>
+      <Text
+        styles={{ root: { color: 'white', float: 'left' } }}
+        variant={'medium'}
+      >
+        {props.playlistTrack.track.addedBy} &#8226;{' '}
+        {props.playlistTrack.track.artist}
+      </Text>
+    </Stack.Item>
   );
 };
 

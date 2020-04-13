@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -10,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using SongOfTheDay.Data;
 using SpotifyAPI.Web;
+using System;
+
 
 namespace SongOfTheDay
 {
@@ -28,21 +31,14 @@ namespace SongOfTheDay
             services.AddDbContext<SongOfTheDayContext>(options =>
                options.UseSqlServer(Configuration.GetConnectionString("SongOfTheDayContext")));
 
+            services.Configure<SpotifySettings>(Configuration);
             services
-                .AddCors(options =>
-                {
-                    options.AddPolicy("CorsPolicy",
-                        builder => builder
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials());
-                })
                 .AddControllers()
-                .AddControllersAsServices()
                 .AddNewtonsoftJson(options =>
                 {
                     options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
                 });
+        
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
